@@ -12,18 +12,18 @@ module Database.PostgreSQL.Pool
   )
   where
 
-import Prelude (bind, flip, pure, ($))
+import Prelude
 
 import Data.Either (hush)
 import Data.Int (fromString)
-import Data.Maybe (Maybe(..))
-import Data.Nullable (Nullable, toNullable)
+import Data.Tuple (Tuple(..))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Nullable (Nullable, toNullable, toMaybe)
+import Data.String as String
 import Data.String.CodeUnits (singleton)
 import Data.Traversable (foldMap)
 import Effect (Effect)
-import Text.Parsing.StringParser (runParser)
-import Text.Parsing.StringParser.CodePoints (anyChar, char, string)
-import Text.Parsing.StringParser.Combinators (many, manyTill)
+import Node.URL as URL
 
 -- | PostgreSQL connection pool.
 foreign import data Pool :: Type
@@ -61,28 +61,27 @@ type PGConnectionURI
 -- | * Do we really want to keep parsing dependency to handle config string?
 -- | * In such a case we should improve parsing (validate port etc.)
 parseURI :: PGConnectionURI -> Maybe Configuration
-parseURI uri =
-  hush
-    $ flip runParser uri do
-        _ <- string "postgres://"
-        user <- tillChar (char ':')
-        password <- tillChar (char '@')
-        host <- tillChar (char ':')
-        port <- tillChar (char '/')
-        database <- many anyChar
-        pure
-          { database: toStr database
-          , host: Just $ toStr host
-          , idleTimeoutMillis: Nothing
-          , max: Nothing
-          , password: Just $ toStr password
-          , port: fromString $ toStr port
-          , user: Just $ toStr user
-          }
+parseURI uri = do
+  path <- toMaybe pathname
+  let database = String.drop 1 path
+  pure
+    { database
+    , host: toMaybe hostname
+    , idleTimeoutMillis: Nothing
+    , max: Nothing
+    , password: passwordM
+    , port: bind (toMaybe port) fromString
+    , user: userM
+    }
   where
-  tillChar = manyTill anyChar
+  {auth, hostname, port, pathname} = URL.parse uri
+  authParts = String.split (String.Pattern ":") $ fromMaybe "" $ toMaybe auth
+  Tuple userM passwordM = case authParts of
+                            [user] -> Tuple (Just user) Nothing
+                            [user, password] -> Tuple (Just user) (Just password)
+                            _ -> Tuple Nothing Nothing
 
-  toStr = foldMap singleton
+
 
 defaultConfiguration :: Database -> Configuration
 defaultConfiguration database =
@@ -118,4 +117,3 @@ foreign import totalCount :: Pool -> Effect Int
 foreign import idleCount :: Pool -> Effect Int
 
 foreign import waitingCount :: Pool -> Effect Int
-
