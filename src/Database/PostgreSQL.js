@@ -8,14 +8,14 @@
 // Putting this import into `PostgreSQL/Value.js` caused is a problem
 // for the web bundlers etc.
 
-var pg = require('pg');
+import pg from 'pg';
 
 // pg does strange thing converting DATE
 // value to js Date, so we have
 // to prevent this craziness
 pg.types.setTypeParser(1082 /* DATE_OID */, function(dateString) { return dateString; });
 
-exports.ffiConnect = function (config) {
+const ffiConnect = function (config) {
     return function (pool) {
         return function (onError, onSuccess) {
             var p = pool.connect().then(function(client) {
@@ -42,7 +42,7 @@ exports.ffiConnect = function (config) {
     };
 };
 
-exports.ffiUnsafeQuery = function(config) {
+const ffiUnsafeQuery = function(config) {
     return function(client) {
         return function(sql) {
             return function(values) {
@@ -72,11 +72,11 @@ exports.ffiUnsafeQuery = function(config) {
     };
 };
 
-exports.ffiSQLState = function (error) {
+const ffiSQLState = function (error) {
     return error.code || null;
 };
 
-exports.ffiErrorDetail = function (error) {
+const ffiErrorDetail = function (error) {
     return {
         severity: error.severity || '',
         code: error.code || '',
@@ -97,3 +97,5 @@ exports.ffiErrorDetail = function (error) {
         routine: error.routine || ''
     };
 };
+
+export {ffiConnect, ffiUnsafeQuery, ffiSQLState, ffiErrorDetail}

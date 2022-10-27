@@ -3,13 +3,11 @@
 
 'use strict';
 
-exports['null'] = null;
-
-exports.instantToString = function(i) {
+const instantToString = function(i) {
     return new Date(i).toUTCString();
 };
 
-exports.instantFromString = function(Left) {
+const instantFromString = function(Left) {
   return function(Right) {
     return function(s) {
       try {
@@ -21,6 +19,8 @@ exports.instantFromString = function(Left) {
   };
 };
 
-exports.unsafeIsBuffer = function(x) {
+const unsafeIsBuffer = function(x) {
     return x instanceof Buffer;
 };
+
+export {instantToString, instantFromString, unsafeIsBuffer, null = 'null'}

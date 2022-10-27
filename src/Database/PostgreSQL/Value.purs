@@ -13,7 +13,6 @@ import Data.Argonaut (stringify) as Argonaut
 import Data.Foldable (foldl)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
-import Data.ByteString (ByteString)
 import Data.Date (Date, canonicalDate, day, month, year)
 import Data.DateTime.Instant (Instant, instant)
 import Data.Decimal (Decimal)
@@ -34,7 +33,6 @@ import Data.String.NonEmpty as NonEmpty
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (sequence, traverse)
 import Foreign (Foreign, ForeignError(..), MultipleErrors, isNull, readArray, readBoolean, readChar, readInt, readNumber, readString, renderForeignError, unsafeFromForeign, unsafeToForeign)
-import Foreign.Generic.Internal (readObject)
 import Foreign.Object (Object)
 
 -- | Convert things to SQL values.
@@ -71,11 +69,6 @@ else instance fromSQLValueArray :: (FromSQLValue a) => FromSQLValue (Array a) wh
 else instance fromSQLValueList :: (FromSQLValue a) => FromSQLValue (List a) where
     fromSQLValue = map List.fromFoldable <<< traverse fromSQLValue <=< lmap show <<< runExcept <<< readArray
 
-else instance fromSQLValueByteString :: FromSQLValue ByteString where
-    fromSQLValue x
-        | unsafeIsBuffer x = pure $ unsafeFromForeign x
-        | otherwise = throwError "FromSQLValue ByteString: not a buffer"
-
 else instance fromSQLValueInstant :: FromSQLValue Instant where
     fromSQLValue v = do
       t <- instantFromString Left Right v
@@ -106,17 +99,17 @@ else instance fromSQLValueMaybe :: (FromSQLValue a) => FromSQLValue (Maybe a) wh
 else instance fromSQLValueForeign :: FromSQLValue Foreign where
     fromSQLValue = pure
 
-else instance fromSQLValueObject :: FromSQLValue a ⇒ FromSQLValue (Object a) where
-  fromSQLValue sql = lmap showErr $ unwrap $ runExceptT main
-    where
-    showErr ∷ MultipleErrors → String
-    showErr e = foldl (\a x → a <> renderForeignError x <> " ") "" e
-    main ∷ ExceptT MultipleErrors Identity (Object a)
-    main = do
-      objF ∷ Object Foreign <- readObject sql
-      let eso = sequence $ map fromSQLValue objF
-      let emo = lmap (singleton <<< ForeignError) eso
-      except emo
+-- else instance fromSQLValueObject :: FromSQLValue a ⇒ FromSQLValue (Object a) where
+--   fromSQLValue sql = lmap showErr $ unwrap $ runExceptT main
+--     where
+--     showErr ∷ MultipleErrors → String
+--     showErr e = foldl (\a x → a <> renderForeignError x <> " ") "" e
+--     main ∷ ExceptT MultipleErrors Identity (Object a)
+--     main = do
+--       objF ∷ Object Foreign <- readObject sql
+--       let eso = sequence $ map fromSQLValue objF
+--       let emo = lmap (singleton <<< ForeignError) eso
+--       except emo
 
 else instance fromSQLValueDecimal :: FromSQLValue Decimal where
     fromSQLValue v = do
@@ -152,9 +145,6 @@ else instance toSQLValueArray :: (ToSQLValue a) => ToSQLValue (Array a) where
 
 else instance toSQLValueList :: (ToSQLValue a) => ToSQLValue (List a) where
     toSQLValue = unsafeToForeign <<< Array.fromFoldable <<< map toSQLValue
-
-else instance toSQLValueByteString :: ToSQLValue ByteString where
-    toSQLValue = unsafeToForeign
 
 else instance toSQLValueInstant :: ToSQLValue Instant where
     toSQLValue = instantToString

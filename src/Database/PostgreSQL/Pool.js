@@ -1,28 +1,29 @@
-var pg = require('pg');
+import pg from 'pg';
 
-"use sctrict";
+"use strict";
 
-exports.ffiNew = function(config) {
+const ffiNew = function(config) {
     return function() {
         return new pg.Pool(config);
     };
 };
 
-
-exports.totalCount = function(pool) {
+const totalCount = function(pool) {
   return function() {
     return pool.totalCount;
   };
 };
 
-exports.idleCount = function(pool) {
+const idleCount = function(pool) {
   return function() {
     return pool.idleCount;
   };
 };
 
-exports.waitingCount = function(pool) {
+const waitingCount = function(pool) {
   return function() {
     return pool.waitingCount;
   };
 };
+
+export {ffiNew, totalCount, idleCount, waitingCount}
