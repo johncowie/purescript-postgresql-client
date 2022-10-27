@@ -29,6 +29,8 @@ import Data.List.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.String (Pattern(..), split)
+import Data.String.NonEmpty (NonEmptyString(..))
+import Data.String.NonEmpty as NonEmpty
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (sequence, traverse)
 import Foreign (Foreign, ForeignError(..), MultipleErrors, isNull, readArray, readBoolean, readChar, readInt, readNumber, readString, renderForeignError, unsafeFromForeign, unsafeToForeign)
@@ -57,6 +59,11 @@ else instance fromSQLValueNumber :: FromSQLValue Number where
 
 else instance fromSQLValueString :: FromSQLValue String where
     fromSQLValue = lmap show <<< runExcept <<< readString
+
+else instance fromSQLValueNonEmptyString :: FromSQLValue NonEmptyString where
+    fromSQLValue f = do
+      s <- fromSQLValue f
+      note "FromSQLValue NonEmptyString: is empty" $ NonEmpty.fromString s
 
 else instance fromSQLValueArray :: (FromSQLValue a) => FromSQLValue (Array a) where
     fromSQLValue = traverse fromSQLValue <=< lmap show <<< runExcept <<< readArray
@@ -136,6 +143,9 @@ else instance toSQLValueNumber :: ToSQLValue Number where
 
 else instance toSQLValueString :: ToSQLValue String where
     toSQLValue = unsafeToForeign
+
+else instance toSQLValueNonEmptyString :: ToSQLValue NonEmptyString where
+    toSQLValue = NonEmpty.toString >>> toSQLValue
 
 else instance toSQLValueArray :: (ToSQLValue a) => ToSQLValue (Array a) where
     toSQLValue = unsafeToForeign <<< map toSQLValue
