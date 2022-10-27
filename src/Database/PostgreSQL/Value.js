@@ -23,4 +23,6 @@ const unsafeIsBuffer = function(x) {
     return x instanceof Buffer;
 };
 
-export {instantToString, instantFromString, unsafeIsBuffer, null = 'null'}
+const nullVal = null
+
+export {instantToString, instantFromString, unsafeIsBuffer, nullVal as "null"}
